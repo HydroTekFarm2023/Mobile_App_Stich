@@ -1,0 +1,48 @@
+workflows:
+  android-build:
+    name: Android Build
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      flutter: stable
+      groups:
+        - amplify_secrets
+    scripts:
+      - name: Write secret config files
+        script: |
+          echo "$AMPLIFY_CONFIG_DART" > lib/amplifyconfiguration.dart
+      - name: Get Flutter packages
+        script: flutter pub get
+      - name: Build Android APK (debug)
+        script: flutter build apk --debug
+    artifacts:
+      - build/**/outputs/**/*.apk
+
+  ios-build:
+    name: iOS Build (IPA)
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+      groups:
+        - amplify_secrets
+      vars:
+        FLUTTER_XCODE_CODE_SIGNING_ALLOWED: "NO"
+        FLUTTER_XCODE_CODE_SIGNING_REQUIRED: "NO"
+    scripts:
+      - name: Write secret config files
+        script: |
+          echo "$AMPLIFY_CONFIG_DART" > lib/amplifyconfiguration.dart
+      - name: Get Flutter packages
+        script: flutter pub get
+      - name: Install CocoaPods
+        script: |
+          cd ios
+          pod install
+      - name: Build iOS Simulator app (no codesign)
+        script: |
+          flutter build ios --release --no-codesign --simulator
+    artifacts:
+      - build/ios/iphonesimulator/*.app
