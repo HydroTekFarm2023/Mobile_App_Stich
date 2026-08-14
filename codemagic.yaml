@@ -43,6 +43,6 @@ workflows:
           pod install
       - name: Build iOS Simulator app (no codesign)
         script: |
-          flutter build ios --release --no-codesign --simulator
+          flutter build ios --debug --no-codesign --simulator
     artifacts:
       - build/ios/iphonesimulator/*.app
