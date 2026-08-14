@@ -1,0 +1,26 @@
+name: hydrotek_flutter
+description: A new Flutter project translating the Hydrotek Farm React app.
+
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.6
+  material_symbols_icons: ^4.7.1 # Provides material-symbols-outlined
+  amplify_flutter: ^2.6.0
+  amplify_auth_cognito: ^2.6.0
+  amplify_storage_s3: ^2.6.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
