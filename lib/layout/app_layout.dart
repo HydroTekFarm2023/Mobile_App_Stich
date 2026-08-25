@@ -51,7 +51,7 @@ class _AppLayoutState extends State<AppLayout> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
@@ -60,14 +60,11 @@ class _AppLayoutState extends State<AppLayout> {
         scrolledUnderElevation: 0,
         title: Row(
           children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primaryContainer,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.eco, color: theme.colorScheme.primary, size: 20),
+            Image.asset(
+              'assets/images/logo.png',
+              width: 40,
+              height: 40,
+              fit: BoxFit.contain,
             ),
             const SizedBox(width: 12),
             Text(

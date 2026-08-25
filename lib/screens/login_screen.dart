@@ -419,14 +419,11 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _buildHeader(ColorScheme colorScheme) {
     return Column(
       children: [
-        Container(
+        Image.asset(
+          'assets/images/logo.png',
           width: 64,
           height: 64,
-          decoration: BoxDecoration(
-            color: colorScheme.primaryContainer.withOpacity(0.25),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Icon(Icons.eco, size: 36, color: colorScheme.primary),
+          fit: BoxFit.contain,
         ),
         const SizedBox(height: 20),
         Text(
