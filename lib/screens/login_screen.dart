@@ -46,7 +46,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (session.isSignedIn && mounted) {
         Navigator.pushReplacementNamed(context, '/dashboard');
       }
-    } on Exception catch (e) {
+    } catch (e) {
       safePrint('Error checking session: $e');
     }
   }
@@ -419,11 +419,11 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _buildHeader(ColorScheme colorScheme) {
     return Column(
       children: [
-        Image.asset(
-          'assets/images/logo.png',
-          width: 64,
-          height: 64,
-          fit: BoxFit.contain,
+        Container(
+          width: 128,
+          height: 128,
+          alignment: Alignment.center,
+          child: Icon(Icons.eco, size: 72, color: colorScheme.primary),
         ),
         const SizedBox(height: 20),
         Text(
@@ -437,9 +437,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          _mode == _AuthMode.signIn
-              ? 'Precision growth for the modern era'
-              : 'Create your operator account',
+          'V1.0',
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 14,

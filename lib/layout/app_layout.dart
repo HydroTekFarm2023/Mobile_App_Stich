@@ -36,84 +36,74 @@ class _AppLayoutState extends State<AppLayout> {
     try {
       final attributes = await Amplify.Auth.fetchUserAttributes();
       for (final attribute in attributes) {
-        if (attribute.userAttributeKey == AuthUserAttributeKey.email) {
-          setState(() {
-            _userEmail = attribute.value;
-          });
+        if (attribute.userAttributeKey == AuthUserAttributeKey.email && mounted) {
+          setState(() => _userEmail = attribute.value);
           break;
         }
       }
-    } catch (e) {
+    } on Exception catch (e) {
       safePrint('Error fetching user email: $e');
+    }
+  }
+
+  void _showProfile() {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Profile'),
+        content: Text(_userEmail ?? 'Email unavailable'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _signOut() async {
+    try {
+      await Amplify.Auth.signOut();
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/login');
+      }
+    } on Exception catch (e) {
+      safePrint('Error signing out: $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
+    
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
         backgroundColor: theme.colorScheme.surface.withOpacity(0.9),
         elevation: 0,
         scrolledUnderElevation: 0,
-        title: Row(
-          children: [
-            Image.asset(
-              'assets/images/logo.png',
-              width: 40,
-              height: 40,
-              fit: BoxFit.contain,
-            ),
-            const SizedBox(width: 12),
-            Text(
-              'Hydrotek Farm',
-              style: TextStyle(
-                color: theme.colorScheme.primary,
-                fontWeight: FontWeight.w900,
-                fontSize: 18,
-                letterSpacing: -0.5,
-              ),
-            ),
-          ],
+        leading: SizedBox(
+          width: 88,
+          height: 48,
+          child: Icon(Icons.eco, color: theme.colorScheme.primary, size: 28),
         ),
         actions: [
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.only(right: 16.0),
-              child: Text(
-                'SYSTEM ONLINE',
-                style: TextStyle(
-                  color: theme.colorScheme.onSurfaceVariant,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.5,
-                ),
-              ),
-            ),
-          ),
           Tooltip(
-            message: _userEmail ?? 'Loading...',
+            message: 'Profile',
             child: IconButton(
               icon: const Icon(Icons.account_circle),
               color: theme.colorScheme.primary,
-              onPressed: () {},
+              onPressed: _showProfile,
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            color: theme.colorScheme.primary,
-            onPressed: () async {
-              try {
-                await Amplify.Auth.signOut();
-                if (context.mounted) {
-                  Navigator.pushReplacementNamed(context, '/login');
-                }
-              } catch (e) {
-                safePrint('Error signing out: $e');
-              }
-            },
+          Tooltip(
+            message: 'Log out',
+            child: IconButton(
+              icon: const Icon(Icons.logout),
+              color: theme.colorScheme.primary,
+              onPressed: _signOut,
+            ),
           ),
           const SizedBox(width: 8),
         ],
@@ -167,9 +157,9 @@ class _AppLayoutState extends State<AppLayout> {
               label: 'Analytics',
             ),
             NavigationDestination(
-              icon: Icon(Icons.videocam_outlined),
-              selectedIcon: Icon(Icons.videocam),
-              label: 'Camera',
+              icon: Icon(Icons.qr_code_scanner_outlined),
+              selectedIcon: Icon(Icons.qr_code_scanner),
+              label: 'Scan',
             ),
           ],
         ),

@@ -8,6 +8,7 @@ void main() {
     await tester.pump();
 
     expect(find.text('Hydrotek Farm'), findsOneWidget);
+    expect(find.text('V1.0'), findsOneWidget);
     expect(find.text('Login'), findsWidgets);
     expect(find.text('Sign up'), findsOneWidget);
     expect(find.text('Create account'), findsOneWidget);
