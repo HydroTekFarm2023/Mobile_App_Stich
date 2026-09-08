@@ -94,12 +94,14 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    if (result.nextStep.signInStep == AuthSignInStep.confirmSignInWithNewPassword) {
+    if (result.nextStep.signInStep ==
+        AuthSignInStep.confirmSignInWithNewPassword) {
       await _showNewPasswordDialog();
       return;
     }
 
-    _showMessage('Additional sign-in step required: ${result.nextStep.signInStep.name}');
+    _showMessage(
+        'Additional sign-in step required: ${result.nextStep.signInStep.name}');
   }
 
   Future<void> _signUp() async {
@@ -135,7 +137,8 @@ class _LoginScreenState extends State<LoginScreen> {
     );
 
     if (!result.isSignUpComplete) {
-      _showMessage('Confirmation is not complete yet. Please try the code again.');
+      _showMessage(
+          'Confirmation is not complete yet. Please try the code again.');
       return;
     }
 
@@ -198,7 +201,8 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('Set a permanent password to finish your first sign-in.'),
+                const Text(
+                    'Set a permanent password to finish your first sign-in.'),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: newPasswordController,
@@ -355,9 +359,12 @@ class _LoginScreenState extends State<LoginScreen> {
                         isPassword: true,
                         isPasswordVisible: _isPasswordVisible,
                         onVisibilityToggle: () {
-                          setState(() => _isPasswordVisible = !_isPasswordVisible);
+                          setState(
+                              () => _isPasswordVisible = !_isPasswordVisible);
                         },
-                        textInputAction: isSignUp ? TextInputAction.next : TextInputAction.done,
+                        textInputAction: isSignUp
+                            ? TextInputAction.next
+                            : TextInputAction.done,
                         validator: _validatePassword,
                       ),
                       if (isSignUp) ...[
@@ -371,7 +378,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           isPassword: true,
                           isPasswordVisible: _isConfirmPasswordVisible,
                           onVisibilityToggle: () {
-                            setState(() => _isConfirmPasswordVisible = !_isConfirmPasswordVisible);
+                            setState(() => _isConfirmPasswordVisible =
+                                !_isConfirmPasswordVisible);
                           },
                           textInputAction: TextInputAction.done,
                           validator: _validateConfirmPassword,
@@ -423,7 +431,12 @@ class _LoginScreenState extends State<LoginScreen> {
           width: 128,
           height: 128,
           alignment: Alignment.center,
-          child: Icon(Icons.eco, size: 72, color: colorScheme.primary),
+          child: Image.asset(
+            'assets/images/logo.png',
+            width: 128,
+            height: 128,
+            fit: BoxFit.contain,
+          ),
         ),
         const SizedBox(height: 20),
         Text(
@@ -479,7 +492,8 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildModeFooter(ColorScheme colorScheme) {
-    final prompt = _mode == _AuthMode.signIn ? 'New user?' : 'Already have an account?';
+    final prompt =
+        _mode == _AuthMode.signIn ? 'New user?' : 'Already have an account?';
     final action = _mode == _AuthMode.signIn ? 'Create account' : 'Login';
 
     return Wrap(
@@ -497,7 +511,9 @@ class _LoginScreenState extends State<LoginScreen> {
         TextButton(
           onPressed: _isBusy
               ? null
-              : () => _switchMode(_mode == _AuthMode.signIn ? _AuthMode.signUp : _AuthMode.signIn),
+              : () => _switchMode(_mode == _AuthMode.signIn
+                  ? _AuthMode.signUp
+                  : _AuthMode.signIn),
           child: Text(action),
         ),
       ],
@@ -507,7 +523,9 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _buildDivider(ColorScheme colorScheme) {
     return Row(
       children: [
-        Expanded(child: Divider(color: colorScheme.outlineVariant.withOpacity(0.35))),
+        Expanded(
+            child:
+                Divider(color: colorScheme.outlineVariant.withOpacity(0.35))),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Text(
@@ -520,7 +538,9 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ),
-        Expanded(child: Divider(color: colorScheme.outlineVariant.withOpacity(0.35))),
+        Expanded(
+            child:
+                Divider(color: colorScheme.outlineVariant.withOpacity(0.35))),
       ],
     );
   }
@@ -608,16 +628,20 @@ class _LoginScreenState extends State<LoginScreen> {
             prefixIcon: Icon(icon, size: 20),
             suffixIcon: isPassword
                 ? IconButton(
-                    tooltip: isPasswordVisible ? 'Hide password' : 'Show password',
+                    tooltip:
+                        isPasswordVisible ? 'Hide password' : 'Show password',
                     icon: Icon(
-                      isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                      isPasswordVisible
+                          ? Icons.visibility
+                          : Icons.visibility_off,
                       color: colorScheme.onSurfaceVariant,
                       size: 20,
                     ),
                     onPressed: onVisibilityToggle,
                   )
                 : null,
-            hintStyle: TextStyle(color: colorScheme.onSurfaceVariant.withOpacity(0.65)),
+            hintStyle: TextStyle(
+                color: colorScheme.onSurfaceVariant.withOpacity(0.65)),
             filled: true,
             fillColor: fillColor,
             border: OutlineInputBorder(
@@ -630,9 +654,11 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: colorScheme.primary.withOpacity(0.45), width: 2),
+              borderSide: BorderSide(
+                  color: colorScheme.primary.withOpacity(0.45), width: 2),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
           ),
         ),
       ],

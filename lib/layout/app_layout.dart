@@ -36,7 +36,8 @@ class _AppLayoutState extends State<AppLayout> {
     try {
       final attributes = await Amplify.Auth.fetchUserAttributes();
       for (final attribute in attributes) {
-        if (attribute.userAttributeKey == AuthUserAttributeKey.email && mounted) {
+        if (attribute.userAttributeKey == AuthUserAttributeKey.email &&
+            mounted) {
           setState(() => _userEmail = attribute.value);
           break;
         }
@@ -76,7 +77,7 @@ class _AppLayoutState extends State<AppLayout> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
@@ -86,7 +87,13 @@ class _AppLayoutState extends State<AppLayout> {
         leading: SizedBox(
           width: 88,
           height: 48,
-          child: Icon(Icons.eco, color: theme.colorScheme.primary, size: 28),
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Image.asset(
+              'assets/images/logo.png',
+              fit: BoxFit.contain,
+            ),
+          ),
         ),
         actions: [
           Tooltip(
