@@ -1,7 +1,53 @@
-import 'package:flutter/material.dart';
+import 'dart:typed_data';
 
-class CameraScreen extends StatelessWidget {
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
+
+class CameraScreen extends StatefulWidget {
   const CameraScreen({super.key});
+
+  @override
+  State<CameraScreen> createState() => _CameraScreenState();
+}
+
+class _CameraScreenState extends State<CameraScreen> {
+  final MobileScannerController _scannerController = MobileScannerController();
+  final ImagePicker _imagePicker = ImagePicker();
+  Uint8List? _selectedImageBytes;
+  String? _scanResult;
+
+  @override
+  void dispose() {
+    _scannerController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    final image = await _imagePicker.pickImage(source: ImageSource.gallery);
+    if (image == null || !mounted) {
+      return;
+    }
+
+    final imageBytes = await image.readAsBytes();
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _selectedImageBytes = imageBytes;
+      _scanResult = null;
+    });
+  }
+
+  void _handleDetection(BarcodeCapture capture) {
+    final value = capture.barcodes.firstOrNull?.rawValue;
+    if (value == null || value == _scanResult || !mounted) {
+      return;
+    }
+
+    setState(() => _scanResult = value);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -15,7 +61,7 @@ class CameraScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Camera Feeds',
+              'Scan',
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.w900,
@@ -23,108 +69,120 @@ class CameraScreen extends StatelessWidget {
                 letterSpacing: -1,
               ),
             ),
-            const SizedBox(height: 32),
-            _buildCameraCard(context, 'CAM 01 - MAIN TANK', 0.85, 'Connection Quality', theme.colorScheme.primary),
+            const SizedBox(height: 8),
+            Text(
+              'Scan a plant label or upload an image from your gallery.',
+              style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 15),
+            ),
             const SizedBox(height: 24),
-            _buildCameraCard(context, 'CAM 02 - SEEDLINGS', 0.40, 'Connection Quality', theme.colorScheme.error),
+            _buildScanner(context),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: _scannerController.start,
+                    icon: const Icon(Icons.qr_code_scanner),
+                    label: const Text('Scan'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _pickImage,
+                    icon: const Icon(Icons.photo_library_outlined),
+                    label: const Text('Gallery'),
+                  ),
+                ),
+              ],
+            ),
+            if (_scanResult != null) ...[
+              const SizedBox(height: 20),
+              _buildResult(context, 'Scanned result', _scanResult!),
+            ],
+            if (_selectedImageBytes != null) ...[
+              const SizedBox(height: 20),
+              _buildUploadedImage(context),
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _buildCameraCard(BuildContext context, String title, double progress, String metricName, Color barColor) {
+  Widget _buildScanner(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.colorScheme.brightness == Brightness.dark;
 
     return Container(
+      height: 300,
+      width: double.infinity,
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.white,
+        color: Colors.black,
         borderRadius: BorderRadius.circular(16),
-        border: isDark ? null : Border.all(color: theme.colorScheme.outlineVariant.withOpacity(0.2), width: 1),
+        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.35), width: 2),
       ),
-      child: Column(
+      child: Stack(
+        fit: StackFit.expand,
         children: [
-          Container(
-            height: 220,
-            width: double.infinity,
-            decoration: const BoxDecoration(
-              color: Colors.black87,
-              borderRadius: BorderRadius.only(topLeft: Radius.circular(16), topRight: Radius.circular(16)),
-            ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                const Icon(
-                  Icons.videocam_off,
-                  size: 64,
-                  color: Colors.white24,
-                ),
-                Positioned(
-                  bottom: 16,
-                  left: 16,
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+          MobileScanner(
+            controller: _scannerController,
+            onDetect: _handleDetection,
+          ),
+          Center(
+            child: Container(
+              width: 220,
+              height: 160,
+              decoration: BoxDecoration(border: Border.all(color: Colors.white, width: 2)),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(metricName, style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 13, fontWeight: FontWeight.w600)),
-                    Text('${(progress * 100).toInt()}%', style: TextStyle(color: barColor, fontSize: 13, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  height: 6,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: isDark ? theme.colorScheme.surface : theme.colorScheme.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: FractionallySizedBox(
-                    alignment: Alignment.centerLeft,
-                    widthFactor: progress,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: barColor,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+          const Positioned(
+            left: 0,
+            right: 0,
+            bottom: 16,
+            child: Text(
+              'Point your camera at a code',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
             ),
-          )
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildResult(BuildContext context, String title, String value) {
+    return ListTile(
+      tileColor: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+      leading: const Icon(Icons.check_circle_outline),
+      title: Text(title),
+      subtitle: Text(value),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    );
+  }
+
+  Widget _buildUploadedImage(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Uploaded image', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 10),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Image.memory(
+            _selectedImageBytes!,
+            height: 180,
+            width: double.infinity,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) => Container(
+              height: 180,
+              alignment: Alignment.center,
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              child: const Text('Image selected'),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
