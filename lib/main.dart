@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
 import 'package:amplify_storage_s3/amplify_storage_s3.dart';
-import 'screens/amplifyconfiguration.dart';
+import 'amplifyconfiguration.dart';
 import 'layout/app_layout.dart';
 import 'screens/login_screen.dart';
 import 'screens/style_gallery.dart';
@@ -44,7 +44,7 @@ class HydrotekApp extends StatelessWidget {
           foregroundColor: AppColors.onSurface,
         ),
         // If 'Manrope' is added to pubspec.yaml, you can uncomment this
-        // fontFamily: 'Manrope', 
+        // fontFamily: 'Manrope',
       ),
       darkTheme: ThemeData(
         useMaterial3: true,
