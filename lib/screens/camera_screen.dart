@@ -1,8 +1,11 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:path/path.dart' as path;
 
 class CameraScreen extends StatefulWidget {
   const CameraScreen({super.key});
@@ -14,8 +17,12 @@ class CameraScreen extends StatefulWidget {
 class _CameraScreenState extends State<CameraScreen> {
   final MobileScannerController _scannerController = MobileScannerController();
   final ImagePicker _imagePicker = ImagePicker();
+  XFile? _selectedImageFile;
   Uint8List? _selectedImageBytes;
   String? _scanResult;
+  String? _diagnosisResult;
+  String? _uploadStatus;
+  bool _isUploading = false;
 
   @override
   void dispose() {
@@ -35,9 +42,147 @@ class _CameraScreenState extends State<CameraScreen> {
     }
 
     setState(() {
+      _selectedImageFile = image;
       _selectedImageBytes = imageBytes;
       _scanResult = null;
+      _diagnosisResult = null;
+      _uploadStatus = null;
     });
+  }
+
+  Future<void> _uploadAndDiagnoseCurrentImage() async {
+    final image = _selectedImageFile;
+    if (image == null || !mounted) {
+      return;
+    }
+
+    setState(() {
+      _isUploading = true;
+      _uploadStatus = 'Uploading image to S3...';
+      _diagnosisResult = null;
+    });
+
+    try {
+      final currentUser = await Amplify.Auth.getCurrentUser();
+      // Guest storage is scoped to the public prefix by Amplify's S3 policy.
+      final fileName =
+          'public/images/${DateTime.now().millisecondsSinceEpoch}${path.extension(image.name)}';
+      await Amplify.Storage.uploadFile(
+        path: StoragePath.fromString(fileName),
+        localFile: AWSFile.fromPath(image.path),
+        options: StorageUploadFileOptions(
+          metadata: {
+            'userid': currentUser.userId,
+            'userId': currentUser.userId,
+          },
+        ),
+      ).result;
+
+      await Amplify.Storage.getUrl(
+        path: StoragePath.fromString(fileName),
+      ).result;
+
+      final diagnosis = await _waitForDiagnosis(fileName);
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _uploadStatus = 'Upload successful';
+        _diagnosisResult = diagnosis ??
+            'Upload successful. Diagnosis will appear when backend returns a result.';
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _uploadStatus = 'Upload failed: $error';
+        _diagnosisResult = null;
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isUploading = false);
+      }
+    }
+  }
+
+  Future<String?> _waitForDiagnosis(String imageKey) async {
+    for (var attempt = 0; attempt < 6; attempt++) {
+      final diagnosis = await _fetchLatestDiagnosis(imageKey);
+      if (diagnosis != null) {
+        return diagnosis;
+      }
+
+      if (attempt < 5) {
+        await Future<void>.delayed(const Duration(seconds: 5));
+      }
+    }
+
+    return null;
+  }
+
+  Future<String?> _fetchLatestDiagnosis(String imageKey) async {
+    const document = '''
+      query ListDiagnoses {
+        listDiagnoses {
+          items {
+            id
+            image_key
+            disease_detected
+            fungal_status
+            health_status
+            recommendations
+            timestamp
+          }
+        }
+      }
+    ''';
+
+    try {
+      final response = await Amplify.API
+          .query(
+            request: GraphQLRequest<String>(
+              document: document,
+              authorizationMode: APIAuthorizationType.userPools,
+            ),
+          )
+          .response;
+
+      if (response.data == null) {
+        return null;
+      }
+
+      final decoded = jsonDecode(response.data!);
+      final items =
+          decoded['listDiagnoses']?['items'] as List<dynamic>? ?? const [];
+
+      for (final item in items.reversed) {
+        final map = item as Map<String, dynamic>;
+        if (map['image_key'] == imageKey) {
+          final disease = map['disease_detected'] ?? 'Diagnosis available';
+          final fungalStatus = map['fungal_status'];
+          final healthStatus = map['health_status'] ?? 'Status unavailable';
+          final recommendations = (map['recommendations'] as List<dynamic>?)
+              ?.map((recommendation) => recommendation.toString())
+              .join('\n');
+          final details = recommendations == null || recommendations.isEmpty
+              ? ''
+              : '\n$recommendations';
+          final status =
+              fungalStatus != null && fungalStatus.toString().isNotEmpty
+                  ? '$fungalStatus / $healthStatus'
+                  : healthStatus;
+          return '$disease ($status)$details';
+        }
+      }
+
+      return null;
+    } catch (_) {
+      return null;
+    }
   }
 
   void _handleDetection(BarcodeCapture capture) {
@@ -72,7 +217,8 @@ class _CameraScreenState extends State<CameraScreen> {
             const SizedBox(height: 8),
             Text(
               'Scan a plant label or upload an image from your gallery.',
-              style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 15),
+              style: TextStyle(
+                  color: theme.colorScheme.onSurfaceVariant, fontSize: 15),
             ),
             const SizedBox(height: 24),
             _buildScanner(context),
@@ -96,9 +242,32 @@ class _CameraScreenState extends State<CameraScreen> {
                 ),
               ],
             ),
+            if (_selectedImageBytes != null) ...[
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                onPressed: _isUploading ? null : _uploadAndDiagnoseCurrentImage,
+                icon: _isUploading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.cloud_upload_outlined),
+                label:
+                    Text(_isUploading ? 'Uploading...' : 'Upload & diagnose'),
+              ),
+            ],
             if (_scanResult != null) ...[
               const SizedBox(height: 20),
               _buildResult(context, 'Scanned result', _scanResult!),
+            ],
+            if (_uploadStatus != null) ...[
+              const SizedBox(height: 20),
+              _buildResult(context, 'Upload status', _uploadStatus!),
+            ],
+            if (_diagnosisResult != null) ...[
+              const SizedBox(height: 20),
+              _buildResult(context, 'Diagnosis', _diagnosisResult!),
             ],
             if (_selectedImageBytes != null) ...[
               const SizedBox(height: 20),
@@ -120,7 +289,8 @@ class _CameraScreenState extends State<CameraScreen> {
       decoration: BoxDecoration(
         color: Colors.black,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.35), width: 2),
+        border: Border.all(
+            color: theme.colorScheme.primary.withValues(alpha: 0.35), width: 2),
       ),
       child: Stack(
         fit: StackFit.expand,
@@ -133,7 +303,8 @@ class _CameraScreenState extends State<CameraScreen> {
             child: Container(
               width: 220,
               height: 160,
-              decoration: BoxDecoration(border: Border.all(color: Colors.white, width: 2)),
+              decoration: BoxDecoration(
+                  border: Border.all(color: Colors.white, width: 2)),
             ),
           ),
           const Positioned(
@@ -143,7 +314,8 @@ class _CameraScreenState extends State<CameraScreen> {
             child: Text(
               'Point your camera at a code',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+              style:
+                  TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -152,12 +324,41 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   Widget _buildResult(BuildContext context, String title, String value) {
-    return ListTile(
-      tileColor: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
-      leading: const Icon(Icons.check_circle_outline),
-      title: Text(title),
-      subtitle: Text(value),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Theme.of(context)
+            .colorScheme
+            .primaryContainer
+            .withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.check_circle_outline,
+              color: Theme.of(context).colorScheme.primary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  value,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 

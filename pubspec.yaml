@@ -14,10 +14,12 @@ dependencies:
   cupertino_icons: ^1.0.6
   material_symbols_icons: ^4.7.1 # Provides material-symbols-outlined
   amplify_flutter: ^2.6.0
+  amplify_api: ^2.6.0
   amplify_auth_cognito: ^2.6.0
   amplify_storage_s3: ^2.6.0
   image_picker: ^1.1.2
   mobile_scanner: ^5.2.3
+  path: ^1.9.1
 
 dev_dependencies:
   flutter_test:
