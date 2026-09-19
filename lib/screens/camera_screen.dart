@@ -87,7 +87,7 @@ class _CameraScreenState extends State<CameraScreen> {
       setState(() {
         _uploadStatus = 'Upload successful';
         _diagnosisResult = diagnosis ??
-          'The image was uploaded, but the backend did not return a diagnosis yet. Check again shortly.';
+            'The image was uploaded, but the backend did not return a diagnosis yet. Check again shortly.';
       });
     } catch (error) {
       if (!mounted) {
@@ -127,8 +127,8 @@ class _CameraScreenState extends State<CameraScreen> {
 
   Future<String?> _fetchLatestDiagnosis(String imageKey) async {
     const document = '''
-      query ListDiagnoses {
-        listDiagnoses {
+      query ListDiagnoses(\$filter: ModelDiagnosisFilterInput) {
+        listDiagnoses(filter: \$filter) {
           items {
             id
             image_key
@@ -147,6 +147,11 @@ class _CameraScreenState extends State<CameraScreen> {
           .query(
             request: GraphQLRequest<String>(
               document: document,
+              variables: {
+                'filter': {
+                  'image_key': {'eq': imageKey},
+                },
+              },
               authorizationMode: APIAuthorizationType.userPools,
             ),
           )
