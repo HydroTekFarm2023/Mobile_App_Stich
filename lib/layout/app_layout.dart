@@ -166,7 +166,7 @@ class _AppLayoutState extends State<AppLayout> {
             NavigationDestination(
               icon: Icon(Icons.qr_code_scanner_outlined),
               selectedIcon: Icon(Icons.qr_code_scanner),
-              label: 'Scan',
+              label: 'Camera',
             ),
           ],
         ),

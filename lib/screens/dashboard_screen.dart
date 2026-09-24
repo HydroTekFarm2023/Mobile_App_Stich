@@ -15,7 +15,8 @@ class DashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = colorScheme.brightness == Brightness.dark;
-    final preset = PlantPresets.presets[selectedPlant] ?? PlantPresets.presets['Strawberry']!;
+    final preset = PlantPresets.presets[selectedPlant] ??
+        PlantPresets.presets['Strawberry']!;
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
@@ -27,38 +28,39 @@ class DashboardScreen extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.all(28.0),
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Greenhouse Status',
-                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: colorScheme.onSurface,
-                          ),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final headerContent = Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Greenhouse Monitoring',
+                        style: Theme.of(context)
+                            .textTheme
+                            .headlineMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: colorScheme.onSurface,
+                            ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'System running optimally.',
+                        style: TextStyle(
+                          color: colorScheme.onSurfaceVariant,
+                          fontSize: 16,
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'System running optimally.',
-                          style: TextStyle(
-                            color: colorScheme.onSurfaceVariant,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Container(
+                      ),
+                    ],
+                  );
+                  final plantSelector = Container(
                     width: 140,
                     height: 40,
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     decoration: BoxDecoration(
-                      color: isDark ? colorScheme.surfaceContainerHighest : const Color(0xFFF4F9F6),
+                      color: isDark
+                          ? colorScheme.surfaceContainerHighest
+                          : const Color(0xFFF4F9F6),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                         color: colorScheme.primary.withOpacity(0.3),
@@ -74,7 +76,9 @@ class DashboardScreen extends StatelessWidget {
                           color: colorScheme.primary,
                           size: 20,
                         ),
-                        dropdownColor: isDark ? colorScheme.surfaceContainerHighest : Colors.white,
+                        dropdownColor: isDark
+                            ? colorScheme.surfaceContainerHighest
+                            : Colors.white,
                         borderRadius: BorderRadius.circular(8),
                         style: TextStyle(
                           fontSize: 13,
@@ -94,84 +98,167 @@ class DashboardScreen extends StatelessWidget {
                         },
                       ),
                     ),
-                  ),
-                ],
+                  );
+
+                  if (constraints.maxWidth < 520) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        headerContent,
+                        const SizedBox(height: 16),
+                        plantSelector,
+                      ],
+                    );
+                  }
+
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: headerContent),
+                      const SizedBox(width: 16),
+                      plantSelector,
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 32),
-              
+
               // The Metric Lens (Hero card)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [colorScheme.primary, colorScheme.primaryContainer],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    transform: const GradientRotation(2.356),
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: isDark ? [] : const [
-                    BoxShadow(color: Color(0x1F166C44), blurRadius: 30, offset: Offset(0, 10))
-                  ]
-                ),
+                    gradient: LinearGradient(
+                      colors: [
+                        colorScheme.primary,
+                        colorScheme.primaryContainer
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      transform: const GradientRotation(2.356),
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: isDark
+                        ? []
+                        : const [
+                            BoxShadow(
+                                color: Color(0x1F166C44),
+                                blurRadius: 30,
+                                offset: Offset(0, 10))
+                          ]),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Overall Yield Health', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+                        const Text('Overall Yield Health',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600)),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 4),
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(99),
                           ),
-                          child: Text(preset.overallHealth, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          child: Text(preset.overallHealth,
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold)),
                         )
                       ],
                     ),
                     const SizedBox(height: 24),
-                     Row(
+                    Row(
                       crossAxisAlignment: CrossAxisAlignment.baseline,
                       textBaseline: TextBaseline.alphabetic,
                       children: [
-                        Text('${preset.overallHealthScore}', style: const TextStyle(color: Colors.white, fontSize: 56, fontWeight: FontWeight.bold, letterSpacing: -1.5)),
-                        Text('%', style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 24, fontWeight: FontWeight.w500)),
+                        Text('${preset.overallHealthScore}',
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 56,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: -1.5)),
+                        Text('%',
+                            style: TextStyle(
+                                color: Colors.white.withOpacity(0.8),
+                                fontSize: 24,
+                                fontWeight: FontWeight.w500)),
                       ],
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 24),
-               Row(
+              Row(
                 children: [
-                   Expanded(
-                    child: _buildMetricCard(context, 'Temperature', '${preset.currentTemp} °C', Icons.thermostat, colorScheme.primary, progress: preset.currentTemp / 40.0),
+                  Expanded(
+                    child: _buildMetricCard(
+                        context,
+                        'Temperature',
+                        '${preset.currentTemp} °C',
+                        Icons.thermostat,
+                        colorScheme.primary,
+                        progress: preset.currentTemp / 40.0),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: _buildMetricCard(context, 'Humidity', '${preset.currentHumidity}%', Icons.water_drop_outlined, colorScheme.secondary, progress: preset.currentHumidity / 100.0),
+                    child: _buildMetricCard(
+                        context,
+                        'Humidity',
+                        '${preset.currentHumidity}%',
+                        Icons.water_drop_outlined,
+                        colorScheme.secondary,
+                        progress: preset.currentHumidity / 100.0),
                   )
                 ],
               ),
-               const SizedBox(height: 16),
+              const SizedBox(height: 16),
               Row(
                 children: [
-                   Expanded(
-                    child: _buildMetricCard(context, 'Nutrient pH', '${preset.nutrientPh}', Icons.science_outlined, colorScheme.tertiary, progress: preset.nutrientPh / 14.0),
+                  Expanded(
+                    child: _buildMetricCard(
+                        context,
+                        'Nutrient pH',
+                        '${preset.nutrientPh}',
+                        Icons.science_outlined,
+                        colorScheme.tertiary,
+                        progress: preset.nutrientPh / 14.0),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: _buildMetricCard(context, 'Light Int.', preset.lightIntensity, Icons.light_mode_outlined, Colors.amber.shade700, progress: preset.lightProgress),
+                    child: _buildMetricCard(
+                        context,
+                        'Light Int.',
+                        preset.lightIntensity,
+                        Icons.light_mode_outlined,
+                        Colors.amber.shade700,
+                        progress: preset.lightProgress),
                   )
                 ],
               ),
               const SizedBox(height: 32),
-              Text('Recent Alerts', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+              Text('Recent Alerts',
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleLarge
+                      ?.copyWith(fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
-              _buildAlertCard(context, 'pH Level Fluctuating', 'Bay 3 - 10 mins ago', Icons.warning_amber_rounded, colorScheme.error),
-               _buildAlertCard(context, 'Routine Maintenance Due', 'Pump Station B - 2 hours ago', Icons.info_outline_rounded, colorScheme.secondary),
+              _buildAlertCard(
+                  context,
+                  'pH Level Fluctuating',
+                  'Bay 3 - 10 mins ago',
+                  Icons.warning_amber_rounded,
+                  colorScheme.error),
+              _buildAlertCard(
+                  context,
+                  'Routine Maintenance Due',
+                  'Pump Station B - 2 hours ago',
+                  Icons.info_outline_rounded,
+                  colorScheme.secondary),
             ],
           ),
         ),
@@ -179,65 +266,93 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMetricCard(BuildContext context, String title, String value, IconData icon, Color iconColor, {double progress = 0.5}) {
+  Widget _buildMetricCard(BuildContext context, String title, String value,
+      IconData icon, Color iconColor,
+      {double progress = 0.5}) {
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = colorScheme.brightness == Brightness.dark;
 
     return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: isDark ? colorScheme.surfaceContainerHighest : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: isDark ? null : Border.all(color: colorScheme.outlineVariant.withOpacity(0.2), width: 1),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Icon(icon, color: iconColor, size: 28),
-              Text(value, style: TextStyle(color: colorScheme.onSurface, fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(title, style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 14, fontWeight: FontWeight.w500)),
-          const SizedBox(height: 12),
-          // Rectangular Bar
-          Container(
-            height: 8,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: isDark ? colorScheme.surface : colorScheme.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(4),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isDark ? colorScheme.surfaceContainerHighest : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: isDark
+              ? null
+              : Border.all(
+                  color: colorScheme.outlineVariant.withOpacity(0.2), width: 1),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Icon(icon, color: iconColor, size: 26),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    value,
+                    textAlign: TextAlign.right,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: colorScheme.onSurface,
+                      fontSize: 21,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                ),
+              ],
             ),
-            child: FractionallySizedBox(
-              alignment: Alignment.centerLeft,
-              widthFactor: progress,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: iconColor,
-                  borderRadius: BorderRadius.circular(4),
+            const SizedBox(height: 16),
+            Text(title,
+                style: TextStyle(
+                    color: colorScheme.onSurfaceVariant,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500)),
+            const SizedBox(height: 12),
+            // Rectangular Bar
+            Container(
+              height: 8,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: isDark
+                    ? colorScheme.surface
+                    : colorScheme.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: FractionallySizedBox(
+                alignment: Alignment.centerLeft,
+                widthFactor: progress,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: iconColor,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
-      )
-    );
+          ],
+        ));
   }
 
-  Widget _buildAlertCard(BuildContext context, String title, String subtitle, IconData icon, Color iconColor) {
-      final colorScheme = Theme.of(context).colorScheme;
-      final isDark = colorScheme.brightness == Brightness.dark;
+  Widget _buildAlertCard(BuildContext context, String title, String subtitle,
+      IconData icon, Color iconColor) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = colorScheme.brightness == Brightness.dark;
 
-      return Container(
+    return Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(20),
-         decoration: BoxDecoration(
+        decoration: BoxDecoration(
           color: isDark ? colorScheme.surfaceContainerHighest : Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: isDark ? null : Border.all(color: colorScheme.outlineVariant.withOpacity(0.2), width: 1),
+          border: isDark
+              ? null
+              : Border.all(
+                  color: colorScheme.outlineVariant.withOpacity(0.2), width: 1),
         ),
         child: Row(
           children: [
@@ -254,15 +369,20 @@ class DashboardScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: TextStyle(color: colorScheme.onSurface, fontWeight: FontWeight.w600, fontSize: 16)),
+                  Text(title,
+                      style: TextStyle(
+                          color: colorScheme.onSurface,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16)),
                   const SizedBox(height: 4),
-                  Text(subtitle, style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 13)),
+                  Text(subtitle,
+                      style: TextStyle(
+                          color: colorScheme.onSurfaceVariant, fontSize: 13)),
                 ],
               ),
             ),
             Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant),
           ],
-        )
-      );
+        ));
   }
 }
