@@ -15,7 +15,6 @@ class CameraScreen extends StatefulWidget {
 }
 
 class _CameraScreenState extends State<CameraScreen> {
-  final MobileScannerController _scannerController = MobileScannerController();
   final ImagePicker _imagePicker = ImagePicker();
   XFile? _selectedImageFile;
   Uint8List? _selectedImageBytes;
@@ -23,12 +22,6 @@ class _CameraScreenState extends State<CameraScreen> {
   String? _diagnosisResult;
   String? _uploadStatus;
   bool _isUploading = false;
-
-  @override
-  void dispose() {
-    _scannerController.dispose();
-    super.dispose();
-  }
 
   Future<void> _pickImage() async {
     final image = await _imagePicker.pickImage(source: ImageSource.gallery);
@@ -221,14 +214,13 @@ class _CameraScreenState extends State<CameraScreen> {
                   color: theme.colorScheme.onSurfaceVariant, fontSize: 15),
             ),
             const SizedBox(height: 24),
-            _buildScanner(context),
             const SizedBox(height: 20),
             Row(
               children: [
                 Expanded(
                   child: FilledButton.icon(
-                    onPressed: _scannerController.start,
-                    icon: const Icon(Icons.qr_code_scanner),
+                    onPressed: _openScanner,
+                    icon: const Icon(Icons.camera_alt_outlined),
                     label: const Text('Scan'),
                   ),
                 ),
@@ -279,46 +271,10 @@ class _CameraScreenState extends State<CameraScreen> {
     );
   }
 
-  Widget _buildScanner(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      height: 300,
-      width: double.infinity,
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: Colors.black,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-            color: theme.colorScheme.primary.withValues(alpha: 0.35), width: 2),
-      ),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          MobileScanner(
-            controller: _scannerController,
-            onDetect: _handleDetection,
-          ),
-          Center(
-            child: Container(
-              width: 220,
-              height: 160,
-              decoration: BoxDecoration(
-                  border: Border.all(color: Colors.white, width: 2)),
-            ),
-          ),
-          const Positioned(
-            left: 0,
-            right: 0,
-            bottom: 16,
-            child: Text(
-              'Point your camera at a code',
-              textAlign: TextAlign.center,
-              style:
-                  TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-            ),
-          ),
-        ],
+  Future<void> _openScanner() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ScannerPage(onDetect: _handleDetection),
       ),
     );
   }
@@ -384,6 +340,72 @@ class _CameraScreenState extends State<CameraScreen> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class ScannerPage extends StatefulWidget {
+  const ScannerPage({required this.onDetect, super.key});
+
+  final ValueChanged<BarcodeCapture> onDetect;
+
+  @override
+  State<ScannerPage> createState() => _ScannerPageState();
+}
+
+class _ScannerPageState extends State<ScannerPage> {
+  final MobileScannerController _controller = MobileScannerController();
+  bool _hasDetected = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleDetection(BarcodeCapture capture) {
+    if (_hasDetected || capture.barcodes.firstOrNull?.rawValue == null) {
+      return;
+    }
+
+    _hasDetected = true;
+    widget.onDetect(capture);
+    Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Scan plant'),
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          tooltip: 'Close scanner',
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
+      backgroundColor: Colors.black,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          MobileScanner(
+            controller: _controller,
+            onDetect: _handleDetection,
+          ),
+          Center(
+            child: Container(
+              width: 280,
+              height: 190,
+              decoration: BoxDecoration(
+                border: Border.all(color: theme.colorScheme.primary, width: 3),
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
