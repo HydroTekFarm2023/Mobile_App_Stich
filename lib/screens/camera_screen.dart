@@ -71,6 +71,10 @@ class _CameraScreenState extends State<CameraScreen> {
         ),
       ).result;
 
+      await Amplify.Storage.getProperties(
+        path: StoragePath.fromString(fileName),
+      ).result;
+
       final diagnosis = await _waitForDiagnosis(fileName);
 
       if (!mounted) {
