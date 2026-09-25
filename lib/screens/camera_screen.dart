@@ -82,9 +82,11 @@ class _CameraScreenState extends State<CameraScreen> {
       }
 
       setState(() {
-        _uploadStatus = 'Upload successful';
+        _uploadStatus = diagnosis == null
+            ? 'Upload successful, but no diagnosis was returned yet.'
+            : 'Diagnosis fetched successfully';
         _diagnosisResult = diagnosis ??
-            'Upload successful. Diagnosis will appear when backend returns a result.';
+            'The image was uploaded, but the diagnosis service did not return a result within 30 seconds.';
       });
     } catch (error) {
       if (!mounted) {
@@ -104,6 +106,12 @@ class _CameraScreenState extends State<CameraScreen> {
 
   Future<String?> _waitForDiagnosis(String imageKey) async {
     for (var attempt = 0; attempt < 6; attempt++) {
+      if (mounted) {
+        setState(() {
+          _uploadStatus = 'Fetching diagnosis... (${attempt + 1} of 6)';
+        });
+      }
+
       final diagnosis = await _fetchLatestDiagnosis(imageKey);
       if (diagnosis != null) {
         return diagnosis;
@@ -245,8 +253,9 @@ class _CameraScreenState extends State<CameraScreen> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.cloud_upload_outlined),
-                label:
-                    Text(_isUploading ? 'Uploading...' : 'Upload & diagnose'),
+                label: Text(_isUploading
+                    ? 'Fetching diagnosis...'
+                    : 'Upload & diagnose'),
               ),
             ],
             if (_scanResult != null) ...[
