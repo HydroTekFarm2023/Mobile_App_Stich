@@ -21,6 +21,7 @@ class _CameraScreenState extends State<CameraScreen> {
   String? _scanResult;
   String? _diagnosisResult;
   String? _uploadStatus;
+  String? _uploadedImageKey;
   bool _isUploading = false;
 
   Future<void> _pickImage() async {
@@ -40,6 +41,7 @@ class _CameraScreenState extends State<CameraScreen> {
       _scanResult = null;
       _diagnosisResult = null;
       _uploadStatus = null;
+      _uploadedImageKey = null;
     });
   }
 
@@ -59,7 +61,7 @@ class _CameraScreenState extends State<CameraScreen> {
       final currentUser = await Amplify.Auth.getCurrentUser();
       // Guest storage is scoped to the public prefix by Amplify's S3 policy.
       final fileName =
-          'public/image_${DateTime.now().millisecondsSinceEpoch}${path.extension(image.name)}';
+          'public/image_${DateTime.now().millisecondsSinceEpoch}${path.extension(image.name).toLowerCase()}';
       await Amplify.Storage.uploadFile(
         path: StoragePath.fromString(fileName),
         localFile: AWSFile.fromPath(image.path),
@@ -67,6 +69,7 @@ class _CameraScreenState extends State<CameraScreen> {
           metadata: {
             'userid': currentUser.userId,
             'userId': currentUser.userId,
+            'username': currentUser.username,
           },
         ),
       ).result;
@@ -75,6 +78,13 @@ class _CameraScreenState extends State<CameraScreen> {
         path: StoragePath.fromString(fileName),
       ).result;
 
+      if (mounted) {
+        setState(() {
+          _uploadedImageKey = fileName;
+          _uploadStatus = 'Image uploaded and verified in S3: $fileName';
+        });
+      }
+
       final diagnosis = await _waitForDiagnosis(fileName);
 
       if (!mounted) {
@@ -82,7 +92,9 @@ class _CameraScreenState extends State<CameraScreen> {
       }
 
       setState(() {
-        _uploadStatus = 'Upload successful';
+        _uploadStatus = diagnosis == null
+            ? 'Upload successful. S3 key: $_uploadedImageKey'
+            : 'Diagnosis fetched successfully for $_uploadedImageKey';
         _diagnosisResult = diagnosis ??
             'The image was uploaded, but the backend did not return a diagnosis yet. Check again shortly.';
       });
@@ -92,8 +104,12 @@ class _CameraScreenState extends State<CameraScreen> {
       }
 
       setState(() {
-        _uploadStatus = 'Upload failed: $error';
-        _diagnosisResult = null;
+        _uploadStatus = _uploadedImageKey == null
+            ? 'Upload failed: $error'
+            : 'Image uploaded to S3. Diagnosis lookup failed: $error';
+        _diagnosisResult = _uploadedImageKey == null
+            ? null
+            : 'The image is stored at $_uploadedImageKey, but the diagnosis service returned an error.';
       });
     } finally {
       if (mounted) {
@@ -124,8 +140,8 @@ class _CameraScreenState extends State<CameraScreen> {
 
   Future<String?> _fetchLatestDiagnosis(String imageKey) async {
     const document = '''
-      query ListDiagnoses(\$filter: ModelDiagnosisFilterInput) {
-        listDiagnoses(filter: \$filter) {
+      query ListDiagnoses {
+        listDiagnoses(limit: 1000) {
           items {
             id
             image_key
@@ -139,78 +155,66 @@ class _CameraScreenState extends State<CameraScreen> {
       }
     ''';
 
-    try {
-      final response = await Amplify.API
-          .query(
-            request: GraphQLRequest<String>(
-              document: document,
-              variables: {
-                'filter': {
-                  'image_key': {'eq': imageKey},
-                },
-              },
-              authorizationMode: APIAuthorizationType.userPools,
-            ),
-          )
-          .response;
+    final response = await Amplify.API
+        .query(
+          request: GraphQLRequest<String>(
+            document: document,
+            authorizationMode: APIAuthorizationType.userPools,
+          ),
+        )
+        .response;
 
-      if (response.errors.isNotEmpty) {
-        safePrint('Diagnosis query failed: ${response.errors}');
-        return null;
-      }
-
-      if (response.data == null) {
-        return null;
-      }
-
-      final decoded = jsonDecode(response.data!);
-      final items =
-          decoded['listDiagnoses']?['items'] as List<dynamic>? ?? const [];
-
-      for (final item in items.reversed) {
-        final map = item as Map<String, dynamic>;
-        final storedImageKey = map['image_key']?.toString();
-        if (_matchesImageKey(storedImageKey, imageKey)) {
-          final disease = map['disease_detected'] ?? 'Diagnosis available';
-          final fungalStatus = map['fungal_status'];
-          final healthStatus = map['health_status'] ?? 'Status unavailable';
-          final recommendations = (map['recommendations'] as List<dynamic>?)
-              ?.map((recommendation) => recommendation.toString())
-              .join('\n');
-          final details = recommendations == null || recommendations.isEmpty
-              ? ''
-              : '\n$recommendations';
-          final status =
-              fungalStatus != null && fungalStatus.toString().isNotEmpty
-                  ? '$fungalStatus / $healthStatus'
-                  : healthStatus;
-          return '$disease ($status)$details';
-        }
-      }
-
-      return null;
-    } catch (error) {
-      safePrint('Diagnosis query exception: $error');
-      return null;
+    if (response.errors.isNotEmpty) {
+      throw Exception(
+        response.errors.map((error) => error.message).join('; '),
+      );
     }
+
+    if (response.data == null) {
+      throw Exception('Diagnosis API returned an empty response.');
+    }
+
+    final decoded = jsonDecode(response.data!);
+    final items =
+        decoded['listDiagnoses']?['items'] as List<dynamic>? ?? const [];
+
+    for (final item in items.reversed) {
+      final map = item as Map<String, dynamic>;
+      if (_isMatchingImageKey(map['image_key'], imageKey)) {
+        final disease = map['disease_detected'] ?? 'Diagnosis available';
+        final fungalStatus = map['fungal_status'];
+        final healthStatus = map['health_status'] ?? 'Status unavailable';
+        final recommendations = (map['recommendations'] as List<dynamic>?)
+            ?.map((recommendation) => recommendation.toString())
+            .join('\n');
+        final details = recommendations == null || recommendations.isEmpty
+            ? ''
+            : '\n$recommendations';
+        final status =
+            fungalStatus != null && fungalStatus.toString().isNotEmpty
+                ? '$fungalStatus / $healthStatus'
+                : healthStatus;
+        return '$disease ($status)$details';
+      }
+    }
+
+    return null;
   }
 
-  bool _matchesImageKey(String? storedImageKey, String uploadedImageKey) {
-    if (storedImageKey == null) {
+  bool _isMatchingImageKey(Object? storedKey, String uploadedKey) {
+    if (storedKey == null) {
       return false;
     }
 
-    String normalize(String value) {
-      return value
-          .replaceFirst(RegExp(r'^https?://[^/]+/'), '')
-          .replaceFirst(RegExp(r'^/+'), '');
-    }
+    final stored = Uri.decodeComponent(storedKey.toString());
+    final uploaded = Uri.decodeComponent(uploadedKey);
+    final storedName = path.basename(stored);
+    final uploadedName = path.basename(uploaded);
 
-    final stored = normalize(storedImageKey);
-    final uploaded = normalize(uploadedImageKey);
     return stored == uploaded ||
-        stored.endsWith('/$uploaded') ||
-        uploaded.endsWith('/$stored');
+        storedName == uploadedName ||
+        stored.endsWith('/$uploadedName') ||
+        uploaded.endsWith('/$storedName');
   }
 
   void _handleDetection(BarcodeCapture capture) {
